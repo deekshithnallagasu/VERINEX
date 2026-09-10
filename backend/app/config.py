@@ -6,6 +6,7 @@ DATA_DIR = BASE_DIR / "data"
 STATIC_DIR = BASE_DIR / "static"
 SAMPLES_DIR = STATIC_DIR / "samples"
 UPLOADS_DIR = STATIC_DIR / "uploads"
+FRONTEND_DIST_DIR = BASE_DIR.parent / "frontend" / "dist"
 
 # Ensure directories exist
 DATA_DIR.mkdir(parents=True, exist_ok=True)

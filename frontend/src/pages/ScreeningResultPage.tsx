@@ -37,9 +37,7 @@ export const ScreeningResultPage: React.FC<ScreeningResultPageProps> = ({
   const isHighRisk = caseData.overall_risk_level === 'HIGH';
   const isMedRisk = caseData.overall_risk_level === 'MEDIUM';
 
-  const previewSrc = caseData.file_url.startsWith('http')
-    ? caseData.file_url
-    : `http://localhost:8000${caseData.file_url}`;
+  const previewSrc = caseData.file_url;
 
   return (
     <div className="p-6 sm:p-8 space-y-8 max-w-7xl mx-auto">

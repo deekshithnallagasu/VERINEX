@@ -12,7 +12,7 @@ backend/data/*.db
 
 # Node / Frontend
 frontend/node_modules/
-frontend/dist/
+# frontend/dist/ (included for seamless out-of-the-box unified serving)
 frontend/.vite/
 frontend/.tmp/
 frontend/*.tsbuildinfo
@@ -27,3 +27,6 @@ Thumbs.db
 # Uploads (Keep sample fixtures, ignore runtime user uploads)
 backend/static/uploads/*
 !backend/static/uploads/.gitkeep
+
+# Temporary scratch test files
+scratch/

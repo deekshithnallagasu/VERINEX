@@ -151,31 +151,35 @@ verinex/
 - Python 3.10+ (Python 3.14 tested)
 - Node.js 18+ and npm (Node.js 20 LTS tested)
 
-### 2. Start the Backend Server
+### 2. Single-Port Unified Run (Recommended)
+You can run the entire application (both Frontend React UI and Backend FastAPI + API) seamlessly together on a single unified port:
 ```bash
-cd backend
-python -m pip install -r requirements.txt
+# Install backend requirements
+python -m pip install -r backend/requirements.txt
+
+# Run unified server (starts frontend & backend together on port 8000)
 python run.py
 ```
-- The backend will automatically create SQLite database tables, generate the 4 fictional test documents in `backend/static/samples/`, and seed initial cases and audit logs.
-- API is accessible at: `http://localhost:8000`
-- Interactive Swagger documentation: `http://localhost:8000/docs`
+- Open your browser at: **`http://localhost:8000`**
+- Interactive Swagger documentation: **`http://localhost:8000/docs`**
+- Both the React frontend SPA, image previews, and REST API are served together from `http://localhost:8000` with zero CORS issues or multiple ports.
 
-### 3. Start the Frontend Server
-Open a second terminal window:
+### 3. Frontend Development Mode (Optional)
+If you are developing frontend components with Vite Hot Module Replacement (HMR):
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-- Open your browser to: `http://localhost:5173`
+- Frontend dev server: `http://localhost:5173` (proxies `/api` to `http://localhost:8000`)
+
 
 ---
 
 ## Step-by-Step Demo Walkthrough
 
 1. **Login**:
-   - Navigate to `http://localhost:5173`.
+   - Navigate to `http://localhost:8000`.
    - Use the **Quick Demo Accounts** buttons (e.g. click **Sarah Chen (Analyst)**) or enter credentials (`analyst` / `Verinex2026!`).
 2. **Dashboard Overview**:
    - Observe live metric cards (Total Screenings, Verified, Suspicious, In Review).

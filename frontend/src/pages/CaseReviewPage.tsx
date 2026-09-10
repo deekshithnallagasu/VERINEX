@@ -101,9 +101,7 @@ export const CaseReviewPage: React.FC<CaseReviewPageProps> = ({ initialCaseId, o
     return <div className="p-8 text-center text-slate-400">Loading case adjudication queue...</div>;
   }
 
-  const previewSrc = activeCase?.file_url.startsWith('http')
-    ? activeCase.file_url
-    : `http://localhost:8000${activeCase?.file_url}`;
+  const previewSrc = activeCase?.file_url || '';
 
   return (
     <div className="p-6 sm:p-8 space-y-6 max-w-7xl mx-auto">

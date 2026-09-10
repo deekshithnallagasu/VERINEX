@@ -48,7 +48,7 @@ export const ScreeningPage: React.FC<ScreeningPageProps> = ({ onScreeningComplet
         if (list.length > 0) {
           setSelectedSample(list[0]);
           setDocType(list[0].document_type);
-          setPreviewUrl(`http://localhost:8000${list[0].image_url}`);
+          setPreviewUrl(list[0].image_url);
         }
       } catch (err) {
         console.error('Error fetching sample presets:', err);
@@ -61,7 +61,7 @@ export const ScreeningPage: React.FC<ScreeningPageProps> = ({ onScreeningComplet
     setSelectedFile(null);
     setSelectedSample(sample);
     setDocType(sample.document_type);
-    setPreviewUrl(`http://localhost:8000${sample.image_url}`);
+    setPreviewUrl(sample.image_url);
     setErrorMessage(null);
   };
 
