@@ -39,6 +39,13 @@ class ScreeningCase(Base):
     consistency_checks_json = Column(Text, default="[]")
     suspicious_indicators_json = Column(Text, default="[]")
     timeline_json = Column(Text, default="[]")
+    mrz_result_json = Column(Text, default="{}")
+    tampering_result_json = Column(Text, default="{}")
+    face_result_json = Column(Text, default="{}")
+    validation_result_json = Column(Text, default="{}")
+
+    annotated_file_url = Column(String(255), nullable=True)
+    face_file_url = Column(String(255), nullable=True)
 
     reviewer_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     reviewer_name = Column(String(100), nullable=True)
@@ -73,6 +80,30 @@ class ScreeningCase(Base):
             return json.loads(self.timeline_json)
         except Exception:
             return []
+
+    def get_mrz_result(self):
+        try:
+            return json.loads(self.mrz_result_json) if self.mrz_result_json else {}
+        except Exception:
+            return {}
+
+    def get_tampering_result(self):
+        try:
+            return json.loads(self.tampering_result_json) if self.tampering_result_json else {}
+        except Exception:
+            return {}
+
+    def get_face_result(self):
+        try:
+            return json.loads(self.face_result_json) if self.face_result_json else {}
+        except Exception:
+            return {}
+
+    def get_validation_result(self):
+        try:
+            return json.loads(self.validation_result_json) if self.validation_result_json else {}
+        except Exception:
+            return {}
 
 class CaseNote(Base):
     __tablename__ = "case_notes"

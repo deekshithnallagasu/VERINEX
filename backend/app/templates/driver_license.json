@@ -1,0 +1,23 @@
+{
+  "document_type": "DRIVER_LICENSE",
+  "name": "Driver License / Permis de Conduire (ID-1 Format)",
+  "aspect_ratio": 1.58,
+  "mrz_required": false,
+  "mrz_format": null,
+  "mrz_lines": 0,
+  "mrz_line_length": 0,
+  "required_fields": [
+    "document_number",
+    "full_name",
+    "date_of_birth",
+    "expiry_date"
+  ],
+  "optional_fields": [
+    "issue_date",
+    "address",
+    "class",
+    "gender",
+    "issuing_authority"
+  ],
+  "keywords": ["DRIVER LICENSE", "DRIVING LICENCE", "PERMIS DE CONDUIRE", "MOTOR VEHICLES", "CONDUCE", "DL NO"]
+}

@@ -1,0 +1,22 @@
+{
+  "document_type": "VISA",
+  "name": "Entry Visa / Entry Clearance (ICAO 9303 MRV-A / MRV-B)",
+  "aspect_ratio": 1.42,
+  "mrz_required": true,
+  "mrz_format": "MRV-A",
+  "mrz_lines": 2,
+  "mrz_line_length": 44,
+  "required_fields": [
+    "document_number",
+    "full_name",
+    "expiry_date",
+    "nationality"
+  ],
+  "optional_fields": [
+    "date_of_birth",
+    "issue_date",
+    "entries",
+    "visa_type"
+  ],
+  "keywords": ["VISA", "ENTRY CLEARANCE", "VISTO", "IMMIGRATION", "ENTRY PERMIT"]
+}

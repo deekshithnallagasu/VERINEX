@@ -13,7 +13,11 @@ import {
   Eye,
   RefreshCw,
   Info,
-  X
+  X,
+  Camera,
+  User,
+  Video,
+  Check
 } from 'lucide-react';
 
 interface ScreeningPageProps {
@@ -24,20 +28,27 @@ export const ScreeningPage: React.FC<ScreeningPageProps> = ({ onScreeningComplet
   const [samples, setSamples] = useState<SampleDocumentItem[]>([]);
   const [selectedSample, setSelectedSample] = useState<SampleDocumentItem | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [probeFaceFile, setProbeFaceFile] = useState<File | null>(null);
+  const [probePreviewUrl, setProbePreviewUrl] = useState<string | null>(null);
+  const [isCameraActive, setIsCameraActive] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [docType, setDocType] = useState<DocumentType>('PASSPORT');
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStep, setProcessingStep] = useState<number>(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const probeInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const steps = [
-    { title: 'Upload & Format Validation', desc: 'Verifying file integrity and MIME type' },
-    { title: 'Image Quality & Glare Inspection', desc: 'Forensic sharpness, glare, and resolution testing' },
-    { title: 'Optical Character Recognition (OCR)', desc: 'Reading visual zones and machine-readable text' },
-    { title: 'Structured Data Extraction', desc: 'Parsing name, DOB, doc number, and dates' },
-    { title: 'Consistency & Tamper Analysis', desc: 'Cross-checking MRZ parity and temporal validity' },
-    { title: 'AI-Assisted Risk Scoring', desc: 'Synthesizing explainable decision-support metrics' }
+    { title: 'Upload & Format Validation', desc: 'Verifying MIME type, dimensions, and payload integrity' },
+    { title: 'Image Preprocessing & Quality', desc: 'CLAHE, unsharp mask, sharpness, glare, and noise checks' },
+    { title: 'RapidOCR Optical Recognition', desc: 'Deep learning OCR extraction of text lines & visual zones' },
+    { title: 'Template & MRZ Validation', desc: 'ICAO 9303 TD1/TD2/TD3 7-3-1 check digit mathematical verification' },
+    { title: 'Cross-Zone Parity Consistency', desc: 'Fuzzy matching visual names, doc numbers, and dates against MRZ' },
+    { title: 'Tampering Forensics & ELA', desc: 'Error Level Analysis, compression anomaly clustering, metadata' },
+    { title: 'Document Face & Biometrics', desc: 'YuNet face detection & SFace 1:1 biometric cosine similarity' },
+    { title: 'Multi-Signal Risk Fusion Engine', desc: 'Synthesizing explainable decision-support indicators' }
   ];
 
   useEffect(() => {
@@ -93,6 +104,56 @@ export const ScreeningPage: React.FC<ScreeningPageProps> = ({ onScreeningComplet
     }
   };
 
+  const handleProbeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setProbeFaceFile(file);
+    setProbePreviewUrl(URL.createObjectURL(file));
+  };
+
+  const startWebcam = async () => {
+    try {
+      setIsCameraActive(true);
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+    } catch (err) {
+      console.error('Webcam access error:', err);
+      setIsCameraActive(false);
+      setErrorMessage('Webcam access was denied or is unavailable. Please upload a selfie image instead.');
+    }
+  };
+
+  const captureWebcam = () => {
+    if (!videoRef.current) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = videoRef.current.videoWidth || 640;
+    canvas.height = videoRef.current.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(videoRef.current, 0, 0);
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const file = new File([blob], 'webcam_probe.jpg', { type: 'image/jpeg' });
+          setProbeFaceFile(file);
+          setProbePreviewUrl(URL.createObjectURL(file));
+          stopWebcam();
+        }
+      }, 'image/jpeg', 0.92);
+    }
+  };
+
+  const stopWebcam = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraActive(false);
+  };
+
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
@@ -120,7 +181,7 @@ export const ScreeningPage: React.FC<ScreeningPageProps> = ({ onScreeningComplet
     // Animate through the workflow steps
     for (let i = 0; i < steps.length; i++) {
       setProcessingStep(i);
-      await new Promise((resolve) => setTimeout(resolve, 450));
+      await new Promise((resolve) => setTimeout(resolve, 380));
     }
 
     try {
@@ -128,7 +189,7 @@ export const ScreeningPage: React.FC<ScreeningPageProps> = ({ onScreeningComplet
       if (selectedSample) {
         result = await api.runDemoSample(selectedSample.id);
       } else if (selectedFile) {
-        result = await api.uploadAndScreen(selectedFile, docType);
+        result = await api.uploadAndScreen(selectedFile, docType, probeFaceFile);
       } else {
         throw new Error('No document chosen');
       }
@@ -290,6 +351,112 @@ export const ScreeningPage: React.FC<ScreeningPageProps> = ({ onScreeningComplet
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Optional Biometric Verification Probe Card */}
+          <div className="p-6 rounded-2xl bg-navy-800/80 border border-slate-700/60 backdrop-blur-md space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-white tracking-wide flex items-center gap-2">
+                  <User className="w-4 h-4 text-purple-400" />
+                  Optional Biometric Probe (1:1 Face Verification)
+                </h3>
+                <p className="text-xs text-slate-400">Provide a live selfie or portrait to verify against the document photo</p>
+              </div>
+              {probePreviewUrl && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProbeFaceFile(null);
+                    setProbePreviewUrl(null);
+                    stopWebcam();
+                  }}
+                  className="text-xs text-rose-400 hover:text-rose-300"
+                >
+                  Remove Probe
+                </button>
+              )}
+            </div>
+
+            {isCameraActive ? (
+              <div className="space-y-3">
+                <div className="relative rounded-xl overflow-hidden bg-black border border-slate-700 aspect-video flex items-center justify-center">
+                  <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
+                  <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-rose-500/80 text-[10px] text-white font-mono flex items-center gap-1.5 animate-pulse">
+                    <span className="w-2 h-2 rounded-full bg-white"></span> LIVE CAMERA
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={captureWebcam}
+                    className="flex-1 py-2 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center justify-center gap-2"
+                  >
+                    <Camera className="w-4 h-4" /> Capture Photo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={stopWebcam}
+                    className="py-2 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : probePreviewUrl ? (
+              <div className="flex items-center gap-4 p-3 rounded-xl bg-navy-900/80 border border-purple-500/30">
+                <img
+                  src={probePreviewUrl}
+                  alt="Probe selfie preview"
+                  className="w-16 h-16 rounded-lg object-cover border border-purple-500/40"
+                />
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <Check className="w-3.5 h-3.5 text-emerald-400" /> Probe Photo Ready
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    Will be matched against document portrait with SFace 128D embeddings.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input
+                  ref={probeInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleProbeChange}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => probeInputRef.current?.click()}
+                  className="p-3.5 rounded-xl border border-slate-700 hover:border-purple-400/50 bg-navy-900/60 hover:bg-navy-850 flex items-center gap-3 transition"
+                >
+                  <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs font-semibold text-white">Upload Selfie</p>
+                    <p className="text-[10px] text-slate-400">JPG, PNG from disk</p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={startWebcam}
+                  className="p-3.5 rounded-xl border border-slate-700 hover:border-purple-400/50 bg-navy-900/60 hover:bg-navy-850 flex items-center gap-3 transition"
+                >
+                  <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
+                    <Video className="w-4 h-4" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs font-semibold text-white">Use Webcam</p>
+                    <p className="text-[10px] text-slate-400">Capture live selfie</p>
+                  </div>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

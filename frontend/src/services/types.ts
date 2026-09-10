@@ -74,6 +74,13 @@ export interface ScreeningCase {
   consistency_checks: ConsistencyCheck[];
   suspicious_indicators: SuspiciousIndicator[];
   timeline: TimelineEvent[];
+  mrz_result?: any;
+  tampering_result?: any;
+  face_result?: any;
+  validation_result?: any;
+  annotated_file_url?: string | null;
+  face_file_url?: string | null;
+  recommendation?: string | null;
   reviewer_name?: string | null;
   reviewer_decision?: string | null;
   reviewer_decision_at?: string | null;

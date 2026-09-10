@@ -107,6 +107,16 @@ class ScreeningCaseOut(BaseModel):
     consistency_checks: List[Dict[str, Any]]
     suspicious_indicators: List[Dict[str, Any]]
     timeline: List[Dict[str, Any]]
+    mrz_result: Optional[Dict[str, Any]] = None
+    consistency_result: Optional[Dict[str, Any]] = None
+    validation_result: Optional[Dict[str, Any]] = None
+    tampering_result: Optional[Dict[str, Any]] = None
+    face_result: Optional[Dict[str, Any]] = None
+    liveness_result: Optional[Dict[str, Any]] = None
+    annotated_file_url: Optional[str] = None
+    face_file_url: Optional[str] = None
+    recommendation: Optional[str] = None
+    risk_breakdown: Optional[Dict[str, Any]] = None
     reviewer_name: Optional[str] = None
     reviewer_decision: Optional[str] = None
     reviewer_decision_at: Optional[datetime] = None

@@ -1,0 +1,23 @@
+{
+  "document_type": "PASSPORT_TD3",
+  "name": "Standard International Passport (ICAO 9303 TD3)",
+  "aspect_ratio": 1.42,
+  "mrz_required": true,
+  "mrz_format": "TD3",
+  "mrz_lines": 2,
+  "mrz_line_length": 44,
+  "required_fields": [
+    "document_number",
+    "full_name",
+    "date_of_birth",
+    "expiry_date",
+    "nationality"
+  ],
+  "optional_fields": [
+    "issue_date",
+    "gender",
+    "issuing_authority",
+    "place_of_birth"
+  ],
+  "keywords": ["PASSPORT", "PASSEPORT", "REPUBLIC", "UNITED STATES", "KINGDOM", "STATE", "COUNTRY"]
+}

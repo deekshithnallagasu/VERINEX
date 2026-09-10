@@ -117,10 +117,13 @@ export const api = {
     return res.json();
   },
 
-  async uploadAndScreen(file: File, documentType: string): Promise<ScreeningCase> {
+  async uploadAndScreen(file: File, documentType: string, probeFace?: File | Blob | null): Promise<ScreeningCase> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('document_type', documentType);
+    if (probeFace) {
+      formData.append('probe_face', probeFace, 'probe_selfie.png');
+    }
 
     const res = await fetch(`${API_BASE}/screenings/upload`, {
       method: 'POST',

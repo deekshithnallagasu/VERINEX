@@ -24,9 +24,16 @@ Thumbs.db
 .idea/
 *.log
 
-# Uploads (Keep sample fixtures, ignore runtime user uploads)
+# Uploads & Runtime Analysis (Keep fixtures, ignore generated files)
 backend/static/uploads/*
 !backend/static/uploads/.gitkeep
+backend/static/analysis/*
+!backend/static/analysis/.gitkeep
+backend/static/preprocessed/*
+!backend/static/preprocessed/.gitkeep
+backend/static/faces/*
+!backend/static/faces/.gitkeep
 
 # Temporary scratch test files
 scratch/
+

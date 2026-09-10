@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 
+from sqlalchemy import text
 from .config import settings, STATIC_DIR, FRONTEND_DIST_DIR
 from .database import engine, Base, SessionLocal
 from .services.seed_data import seed_database
@@ -16,6 +17,22 @@ async def lifespan(app: FastAPI):
     # Initialize database tables
     Base.metadata.create_all(bind=engine)
     
+    # Safe SQLite column migration for newly added fields
+    with engine.connect() as conn:
+        for col_def in [
+            "mrz_result_json TEXT DEFAULT '{}'",
+            "tampering_result_json TEXT DEFAULT '{}'",
+            "face_result_json TEXT DEFAULT '{}'",
+            "validation_result_json TEXT DEFAULT '{}'",
+            "annotated_file_url VARCHAR(255)",
+            "face_file_url VARCHAR(255)"
+        ]:
+            try:
+                conn.execute(text(f"ALTER TABLE screening_cases ADD COLUMN {col_def}"))
+                conn.commit()
+            except Exception:
+                pass
+
     # Run automatic seeding of fictional data and specimen images
     db = SessionLocal()
     try:

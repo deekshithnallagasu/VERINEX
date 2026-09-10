@@ -6,12 +6,18 @@ DATA_DIR = BASE_DIR / "data"
 STATIC_DIR = BASE_DIR / "static"
 SAMPLES_DIR = STATIC_DIR / "samples"
 UPLOADS_DIR = STATIC_DIR / "uploads"
+ANALYSIS_DIR = STATIC_DIR / "analysis"
+FACES_DIR = STATIC_DIR / "faces"
+PREPROCESSED_DIR = STATIC_DIR / "preprocessed"
 FRONTEND_DIST_DIR = BASE_DIR.parent / "frontend" / "dist"
 
 # Ensure directories exist
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 SAMPLES_DIR.mkdir(parents=True, exist_ok=True)
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+ANALYSIS_DIR.mkdir(parents=True, exist_ok=True)
+FACES_DIR.mkdir(parents=True, exist_ok=True)
+PREPROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
 class Settings:
     PROJECT_NAME: str = "VERINEX – AI-Based Identity & Document Screening System"

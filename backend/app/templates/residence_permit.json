@@ -1,0 +1,22 @@
+{
+  "document_type": "RESIDENCE_PERMIT",
+  "name": "Residence Permit / Card (ID-1 Format)",
+  "aspect_ratio": 1.58,
+  "mrz_required": false,
+  "mrz_format": "TD1",
+  "mrz_lines": 3,
+  "mrz_line_length": 30,
+  "required_fields": [
+    "document_number",
+    "full_name",
+    "expiry_date",
+    "nationality"
+  ],
+  "optional_fields": [
+    "date_of_birth",
+    "issue_date",
+    "permit_type",
+    "address"
+  ],
+  "keywords": ["RESIDENCE PERMIT", "RESIDENCE CARD", "TITRE DE SEJOUR", "AUFENTHALTSTITEL", "PERMISO DE RESIDENCIA"]
+}

@@ -69,7 +69,7 @@ def generate_sample_documents():
         # MRZ Zone
         draw.rectangle([(0, 420), (w, h)], fill=(235, 240, 248), outline=(190, 205, 225), width=2)
         mrz1 = "P<USAABERNATHY<<CLARA<ELEANOR<<<<<<<<<<<<<<<"
-        mrz2 = "E849201947USA8905144F2906117<<<<<<<<<<<<<<<4"
+        mrz2 = "E849201943USA8905145F2906117<<<<<<<<<<<<<<04"
         draw.text((40, 445), mrz1, fill=(20, 25, 40))
         draw.text((40, 485), mrz2, fill=(20, 25, 40))
 

@@ -1,0 +1,21 @@
+{
+  "document_type": "PASSPORT_TD1",
+  "name": "ID-1 Size Passport Card (ICAO 9303 TD1)",
+  "aspect_ratio": 1.58,
+  "mrz_required": true,
+  "mrz_format": "TD1",
+  "mrz_lines": 3,
+  "mrz_line_length": 30,
+  "required_fields": [
+    "document_number",
+    "full_name",
+    "date_of_birth",
+    "expiry_date",
+    "nationality"
+  ],
+  "optional_fields": [
+    "gender",
+    "issue_date"
+  ],
+  "keywords": ["PASSPORT CARD", "CARTE DE PASSEPORT", "TRAVEL CARD"]
+}
