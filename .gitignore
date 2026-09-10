@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+backend/data/*.db
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.tmp/
+frontend/*.tsbuildinfo
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+
+# Uploads (Keep sample fixtures, ignore runtime user uploads)
+backend/static/uploads/*
+!backend/static/uploads/.gitkeep
