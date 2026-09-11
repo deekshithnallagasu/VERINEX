@@ -9,10 +9,11 @@ from typing import List, Optional, Dict, Any
 
 from ..database import get_db
 from ..models import ScreeningCase, User
-from ..schemas import ScreeningCaseOut, SampleDocumentItem
+from ..schemas import ScreeningCaseOut, SampleDocumentItem, DocumentValidationResponse
 from ..config import UPLOADS_DIR, SAMPLES_DIR, STATIC_DIR
 from ..services.quality_service import analyze_document_quality
 from ..services.image_preprocessing import preprocess_document_image
+from ..services.document_classifier import classifier
 from ..services.ocr_service import extract_document_text
 from ..services.document_service import detect_document_type
 from ..services.mrz_service import detect_and_validate_mrz
@@ -35,6 +36,33 @@ SAMPLE_PRESETS = [
         "expected_risk": "LOW",
         "image_url": "/static/samples/sample_passport_clean.png",
         "badge_label": "Standard Clean Pass"
+    },
+    {
+        "id": "VALID_AADHAAR",
+        "title": "Fictional Aadhaar Card (Clean / Valid)",
+        "description": "UIDAI identity card with authentic layout, 12-digit UID format, holder portrait, and official issuance headers.",
+        "document_type": "AADHAAR",
+        "expected_risk": "LOW",
+        "image_url": "/static/samples/sample_aadhaar.png",
+        "badge_label": "Aadhaar UID Valid"
+    },
+    {
+        "id": "VALID_PAN",
+        "title": "Fictional PAN Card (Clean / Valid)",
+        "description": "Income Tax Department Permanent Account Number card with standard 10-character alphanumeric PAN format and signature box.",
+        "document_type": "PAN_CARD",
+        "expected_risk": "LOW",
+        "image_url": "/static/samples/sample_pan_card.png",
+        "badge_label": "PAN Format Valid"
+    },
+    {
+        "id": "VALID_VOTER_ID",
+        "title": "Fictional Voter ID (Clean / Valid)",
+        "description": "Election Commission of India Elector Photo Identity Card with EPIC number, constituency details, and elector portrait.",
+        "document_type": "VOTER_ID",
+        "expected_risk": "LOW",
+        "image_url": "/static/samples/sample_voter_id.png",
+        "badge_label": "EPIC Format Valid"
     },
     {
         "id": "EXPIRED_LICENSE",
@@ -62,6 +90,15 @@ SAMPLE_PRESETS = [
         "expected_risk": "MEDIUM",
         "image_url": "/static/samples/sample_residence_blurry.png",
         "badge_label": "Low Optical Sharpness"
+    },
+    {
+        "id": "SAMPLE_SIGNATURE",
+        "title": "Fictional Signature Only (Non-Document)",
+        "description": "Standalone ink signature on white background without document headers, layout, or identity fields. Triggers document mismatch rejection.",
+        "document_type": "UNKNOWN",
+        "expected_risk": "HIGH",
+        "image_url": "/static/samples/sample_signature.png",
+        "badge_label": "Non-Doc Mismatch"
     }
 ]
 
@@ -103,6 +140,56 @@ def get_screening_case(case_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
     return _format_case_out(case)
 
+@router.post("/validate-document-type", response_model=DocumentValidationResponse)
+async def validate_document_type_endpoint(
+    file: Optional[UploadFile] = File(None),
+    sample_id: Optional[str] = Form(None),
+    selected_document_type: str = Form("PASSPORT"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Mandatory Pre-Screening Document Type Authentication Endpoint.
+    Analyzes an uploaded file or sample specimen to determine what document type
+    it actually appears to be and verifies whether it matches the selected type.
+    """
+    target_path = None
+    if sample_id:
+        preset = next((p for p in SAMPLE_PRESETS if p["id"] == sample_id), None)
+        if preset:
+            filename = os.path.basename(preset["image_url"])
+            target_path = str(SAMPLES_DIR / filename)
+        else:
+            sample_file = f"{sample_id.lower()}.png"
+            if (SAMPLES_DIR / sample_file).exists():
+                target_path = str(SAMPLES_DIR / sample_file)
+    elif file and file.filename:
+        file_uuid = uuid.uuid4().hex[:8]
+        temp_name = f"val_{file_uuid}_{file.filename.replace(' ', '_')}"
+        target_path = str(UPLOADS_DIR / temp_name)
+        with open(target_path, "wb") as buf:
+            shutil.copyfileobj(file.file, buf)
+
+    if not target_path or not os.path.exists(target_path):
+        raise HTTPException(status_code=400, detail="No valid file or sample specimen provided for document classification.")
+
+    val_res = classifier.classify_document(
+        image_path=target_path,
+        selected_document_type=selected_document_type
+    )
+
+    # Record audit trail of document type validation
+    log_audit_event(
+        db=db,
+        username=current_user.full_name,
+        action="DOCUMENT_TYPE_VALIDATION",
+        case_id=None,
+        details=f"Document type check: Selected '{selected_document_type}', Detected '{val_res['detected_document_type']}' ({val_res['classification_confidence']}%). Status: {val_res['validation_status']}.",
+        severity="WARNING" if not val_res["is_match"] else "INFO"
+    )
+
+    return val_res
+
 def _execute_screening_pipeline(
     doc_file_path: str,
     doc_type_hint: str = "PASSPORT",
@@ -110,45 +197,148 @@ def _execute_screening_pipeline(
     probe_face_path: Optional[str] = None
 ) -> Dict[str, Any]:
     """
-    Executes the modular 13-stage AI screening pipeline:
-    1. Document Quality Analysis (resolution, sharpness, glare)
-    2. Image Preprocessing (CLAHE, unsharp mask, binarization)
-    3. Real OCR Text Extraction (RapidOCR)
-    4. Document Type & Template Detection
-    5. MRZ Detection & ICAO 9303 Check digit validation
-    6. Visual OCR <-> MRZ Cross Consistency
-    7. Date and Logical Validation (DOB, issue, expiration warning)
-    8. Digital Image Forensics (Error Level Analysis, suspicious blocks)
-    9. Document Photo Extraction
-    10. 1:1 Face Verification (if probe photo provided)
-    11. Presentation Liveness & Morphing analysis
-    12. Multi-Signal Risk Fusion Engine
+    Executes the mandatory 10-stage AI screening pipeline:
+    1. File Validation & Preprocessing (CLAHE, unsharp mask, skew check)
+    2. Image Quality Analysis (resolution, sharpness, glare)
+    3. Document Type Classification (independent multi-modal feature classification)
+    4. Selected-vs-Detected Document Match (authoritative verification gatekeeper)
+    5. RapidOCR Optical Character Recognition (only if type match confirmed)
+    6. Structured Field Extraction & Template Mapping
+    7. Machine-Readable-Zone (MRZ) & Checksum Verification
+    8. Cross-Zone Parity & Consistency Analysis
+    9. Digital Image Forensics (Error Level Analysis)
+    10. Biometric Photo & 1:1 Face Verification
+    11. Multi-Signal Risk Fusion Engine
     """
     now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     timeline = []
 
-    # 1. Document Quality Analysis
+    # 1. File Format & Preprocessing
+    prep_res = preprocess_document_image(doc_file_path)
+    timeline.append({
+        "step": "File Validation & Preprocessing",
+        "timestamp": now_str,
+        "status": "COMPLETED",
+        "description": f"Applied CLAHE contrast optimization and skew correction ({prep_res.get('skew_angle_deg', 0)}°)."
+    })
+
+    # 2. Image Quality Analysis
     quality_metrics = analyze_document_quality(doc_file_path)
     timeline.append({
-        "step": "Quality Inspection",
+        "step": "Image Quality Inspection",
         "timestamp": now_str,
         "status": "COMPLETED",
         "description": f"Overall Quality: {quality_metrics.get('overall_quality_score')}% (Sharpness: {quality_metrics.get('sharpness_score')}%, Glare: {quality_metrics.get('glare_score')}%)."
     })
 
-    # 2. Image Preprocessing
-    prep_res = preprocess_document_image(doc_file_path)
+    # 3. Document Type Classification (BEFORE full OCR / forensic scoring)
+    classification_res = classifier.classify_document(
+        image_path=doc_file_path,
+        selected_document_type=doc_type_hint
+    )
+    detected_type = classification_res["detected_document_type"]
+    val_status = classification_res["validation_status"]
+    conf = classification_res["classification_confidence"]
+
     timeline.append({
-        "step": "Image Preprocessing",
+        "step": "Document Type Classification",
         "timestamp": now_str,
         "status": "COMPLETED",
-        "description": f"Applied CLAHE contrast optimization and skew detection ({prep_res.get('skew_angle_deg', 0)}°)."
+        "description": f"Detected: {classification_res['detected_document_name']} with {conf}% confidence (Threshold: {classification_res['confidence_threshold']}%)."
     })
 
-    # 3. Real OCR Extraction
+    # 4. Selected-vs-Detected Document Match
+    # If mismatch or unknown/invalid, HALT the pipeline immediately.
+    # NEVER proceed to passport verification, forensics, or issuing Low Risk!
+    if val_status in ["DOCUMENT_TYPE_MISMATCH", "UNKNOWN_DOCUMENT"]:
+        timeline.append({
+            "step": "Document Type Match",
+            "timestamp": now_str,
+            "status": "FAILED",
+            "description": classification_res.get("warning_message") or f"Mismatch: Selected '{doc_type_hint}', Detected '{detected_type}'."
+        })
+        timeline.append({
+            "step": "Verification Pipeline Halted",
+            "timestamp": now_str,
+            "status": "REJECTED",
+            "description": "Screening pipeline terminated immediately before OCR verification and risk scoring due to document type discrepancy."
+        })
+
+        return {
+            "quality_metrics": quality_metrics,
+            "prep_result": prep_res,
+            "ocr_result": {
+                "ocr_confidence": 0.0,
+                "raw_text": "",
+                "extracted_data": {},
+                "lines_detected": 0
+            },
+            "document_type": detected_type,
+            "selected_document_type": doc_type_hint,
+            "classification_result": classification_res,
+            "is_mismatched": True,
+            "mrz_result": {"detected": False, "overall_status": "NOT_DETECTED"},
+            "consistency_result": {
+                "overall_status": "FAILED",
+                "mismatches": [{"field": "document_type", "reason": classification_res.get("mismatch_reason")}]
+            },
+            "validation_result": {
+                "is_valid": False,
+                "checks": [{
+                    "name": "Document Type Authentication",
+                    "status": "FAIL",
+                    "reason": classification_res.get("mismatch_reason")
+                }]
+            },
+            "tampering_result": {
+                "tampering_score": 90,
+                "status": "HIGH",
+                "annotated_image_url": None
+            },
+            "face_result": {"face_detected": False, "status": "UNAVAILABLE"},
+            "liveness_result": {},
+            "risk_result": {
+                "risk_score": 92,
+                "overall_risk_level": "HIGH",
+                "ai_confidence": conf,
+                "consistency_checks": [{
+                    "check_name": "Document Type Authenticity",
+                    "status": "FAIL",
+                    "details": classification_res.get("warning_message") or "Document type mismatch"
+                }],
+                "suspicious_indicators": [{
+                    "title": "Document Type Mismatch / Invalid Specimen",
+                    "severity": "HIGH",
+                    "category": "Authentication",
+                    "explanation": classification_res.get("warning_message") or f"Selected document was '{doc_type_hint}', but uploaded file appears to be '{detected_type}'.",
+                    "recommendation": f"Upload an authentic {doc_type_hint} document image."
+                }]
+            },
+            "timeline": timeline,
+            "annotated_file_url": None,
+            "face_file_url": None
+        }
+
+    # If marginal confidence -> flag for manual review
+    if val_status == "MANUAL_REVIEW_REQUIRED":
+        timeline.append({
+            "step": "Document Type Match",
+            "timestamp": now_str,
+            "status": "WARNING",
+            "description": f"Marginal confidence ({conf}% < {classification_res['confidence_threshold']}%). Manual review required."
+        })
+    else:
+        timeline.append({
+            "step": "Document Type Match",
+            "timestamp": now_str,
+            "status": "COMPLETED",
+            "description": f"Confirmed {doc_type_hint} match with {conf}% confidence."
+        })
+
+    # 5. Real OCR Extraction
     ocr_result = extract_document_text(
         file_path=doc_file_path,
-        document_type=doc_type_hint,
+        document_type=detected_type,
         mock_profile=mock_profile
     )
     raw_ocr_lines = ocr_result.get("raw_text", "").splitlines()
@@ -159,18 +349,16 @@ def _execute_screening_pipeline(
         "description": f"RapidOCR extracted {len(raw_ocr_lines)} text lines with {ocr_result.get('ocr_confidence', 0)}% confidence."
     })
 
-    # 4. Document Type & Template Detection
+    # 6. Template Evaluation
     doc_tmpl_res = detect_document_type(
         raw_text=ocr_result.get("raw_text", ""),
         aspect_ratio=quality_metrics.get("aspect_ratio", 1.42),
         has_mrz=bool(ocr_result.get("extracted_data", {}).get("mrz_line1")),
         mrz_lines_count=2 if ocr_result.get("extracted_data", {}).get("mrz_line2") else (1 if ocr_result.get("extracted_data", {}).get("mrz_line1") else 0)
     )
-    detected_doc_type = doc_tmpl_res.get("document_type", doc_type_hint)
 
-    # 5. MRZ Detection & ICAO 9303 Checksums
+    # 7. MRZ Detection & ICAO 9303 Checksums
     mrz_res = detect_and_validate_mrz(raw_ocr_lines)
-    # If OCR extracted MRZ in mock profile or lines:
     if not mrz_res.get("detected") and ocr_result.get("extracted_data", {}).get("mrz_line1"):
         from ..services.mrz_service import parse_td3_mrz
         l1 = ocr_result["extracted_data"]["mrz_line1"]
@@ -184,7 +372,7 @@ def _execute_screening_pipeline(
         "description": f"Format: {mrz_res.get('format') or 'None'} | Checksums: {mrz_res.get('overall_status')}."
     })
 
-    # 6. Visual OCR <-> MRZ Cross-Zone Consistency
+    # 8. Visual OCR <-> MRZ Cross-Zone Consistency
     consistency_res = verify_ocr_mrz_consistency(
         extracted_ocr=ocr_result.get("extracted_data", {}),
         mrz_result=mrz_res
@@ -196,7 +384,7 @@ def _execute_screening_pipeline(
         "description": f"Cross-zone integrity: {consistency_res.get('overall_status')} ({len(consistency_res.get('mismatches', []))} discrepancies)."
     })
 
-    # 7. Date & Logical Sanity Validation
+    # 9. Date & Logical Sanity Validation
     validation_res = validate_document_logic(
         extracted_data=ocr_result.get("extracted_data", {}),
         document_template=doc_tmpl_res
@@ -208,7 +396,7 @@ def _execute_screening_pipeline(
         "description": f"Dates and document syntax verified. Expired: {validation_res.get('is_expired')}."
     })
 
-    # 8. Digital Image Forensics (Error Level Analysis)
+    # 10. Digital Image Forensics (Error Level Analysis)
     tampering_res = analyze_image_tampering(doc_file_path)
     timeline.append({
         "step": "Digital Image Forensics",
@@ -217,10 +405,8 @@ def _execute_screening_pipeline(
         "description": f"Forensic Tamper Score: {tampering_res.get('tampering_score')}/100 ({tampering_res.get('status')} risk)."
     })
 
-    # 9. Document Photo Extraction
+    # 11. Document Photo Extraction & Face Verification
     face_res = extract_document_face(doc_file_path)
-    
-    # 10. 1:1 Face Verification (if probe face supplied)
     face_verify_res = {
         "face_detected": face_res.get("face_detected", False),
         "doc_face_url": face_res.get("face_image_url"),
@@ -234,9 +420,7 @@ def _execute_screening_pipeline(
     if probe_face_path and os.path.exists(probe_face_path):
         face_verify_res = verify_faces_1to1(doc_file_path, probe_face_path)
 
-    # 11. Presentation Liveness & Morphing
     liveness_res = analyze_liveness_and_morphing(probe_face_path)
-
     timeline.append({
         "step": "Biometric Verification",
         "timestamp": now_str,
@@ -249,7 +433,7 @@ def _execute_screening_pipeline(
         extracted_data=ocr_result.get("extracted_data", {}),
         quality_metrics=quality_metrics,
         ocr_confidence=ocr_result.get("ocr_confidence", 0.0),
-        document_type=detected_doc_type,
+        document_type=detected_type,
         mrz_result=mrz_res,
         consistency_result=consistency_res,
         validation_result=validation_res,
@@ -257,6 +441,18 @@ def _execute_screening_pipeline(
         face_result=face_verify_res,
         liveness_result=liveness_res
     )
+
+    # If manual review was required on document classification, ensure risk reflects review requirement
+    if val_status == "MANUAL_REVIEW_REQUIRED" and risk_res.get("overall_risk_level") == "LOW":
+        risk_res["overall_risk_level"] = "MEDIUM"
+        risk_res["risk_score"] = max(45, risk_res.get("risk_score", 45))
+        risk_res["suspicious_indicators"].insert(0, {
+            "title": "Document Classification Manual Review Required",
+            "severity": "MEDIUM",
+            "category": "Classification",
+            "explanation": f"Document classification confidence ({conf}%) is below the {classification_res['confidence_threshold']}% security threshold.",
+            "recommendation": "Perform manual visual inspection of the document card."
+        })
 
     timeline.append({
         "step": "AI Risk Assessment",
@@ -269,7 +465,10 @@ def _execute_screening_pipeline(
         "quality_metrics": quality_metrics,
         "prep_result": prep_res,
         "ocr_result": ocr_result,
-        "document_type": detected_doc_type,
+        "document_type": detected_type,
+        "selected_document_type": doc_type_hint,
+        "classification_result": classification_res,
+        "is_mismatched": False,
         "mrz_result": mrz_res,
         "consistency_result": consistency_res,
         "validation_result": validation_res,
@@ -309,19 +508,31 @@ def run_screening_demo_sample(
     new_case_id = f"VNX-2026-{case_num}"
     now = datetime.utcnow()
 
-    initial_status = "VERIFIED" if risk_res["overall_risk_level"] == "LOW" else "IN_REVIEW"
-    if risk_res["overall_risk_level"] == "HIGH":
-        initial_status = "FLAGGED"
+    is_mismatch = pipeline_out.get("is_mismatched", False)
+    if is_mismatch:
+        initial_status = "REJECTED"
+        overall_risk = "HIGH"
+        risk_score = 90
+        ai_conf = pipeline_out.get("classification_result", {}).get("classification_confidence", 85.0)
+    else:
+        initial_status = "VERIFIED" if risk_res["overall_risk_level"] == "LOW" else "IN_REVIEW"
+        if risk_res["overall_risk_level"] == "HIGH":
+            initial_status = "FLAGGED"
+        overall_risk = risk_res["overall_risk_level"]
+        risk_score = risk_res["risk_score"]
+        ai_conf = risk_res["ai_confidence"]
 
     new_case = ScreeningCase(
         id=new_case_id,
-        document_type=preset["document_type"],
+        document_type=pipeline_out["document_type"],
+        selected_document_type=preset["document_type"],
+        classification_result_json=json.dumps(pipeline_out.get("classification_result", {})),
         file_name=sample_filename,
         file_url=preset["image_url"],
         status=initial_status,
-        overall_risk_level=risk_res["overall_risk_level"],
-        risk_score=risk_res["risk_score"],
-        ai_confidence=risk_res["ai_confidence"],
+        overall_risk_level=overall_risk,
+        risk_score=risk_score,
+        ai_confidence=ai_conf,
         document_quality_score=pipeline_out["quality_metrics"]["overall_quality_score"],
         ocr_confidence=pipeline_out["ocr_result"]["ocr_confidence"],
         extracted_data_json=json.dumps(pipeline_out["ocr_result"]["extracted_data"]),
@@ -342,13 +553,14 @@ def run_screening_demo_sample(
     db.commit()
     db.refresh(new_case)
 
-    severity = "CRITICAL" if risk_res["overall_risk_level"] == "HIGH" else ("WARNING" if risk_res["overall_risk_level"] == "MEDIUM" else "INFO")
+    severity = "CRITICAL" if overall_risk == "HIGH" or is_mismatch else ("WARNING" if overall_risk == "MEDIUM" else "INFO")
+    action = "DOCUMENT_TYPE_MISMATCH_REJECTED" if is_mismatch else "SCREENING_RUN"
     log_audit_event(
         db=db,
         username=current_user.full_name,
-        action="SCREENING_RUN",
+        action=action,
         case_id=new_case_id,
-        details=f"AI screening executed on {preset['title']}. Risk Level: {risk_res['overall_risk_level']} (Score: {risk_res['risk_score']}/100).",
+        details=f"AI screening executed on {preset['title']}. Risk Level: {overall_risk} (Score: {risk_score}/100). Status: {initial_status}.",
         severity=severity
     )
 
@@ -363,8 +575,8 @@ async def upload_and_screen_document(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Uploads a real or fictional document image, executes the genuine 13-stage AI screening pipeline,
-    including RapidOCR, ICAO 9303 MRZ validation, error level forensics, face verification,
+    Uploads a real or fictional document image, executes the mandatory 10-stage AI screening pipeline,
+    including Document Type Authentication gatekeeper, RapidOCR, ICAO 9303 MRZ validation, error level forensics,
     and returns comprehensive structured results.
     """
     ext = os.path.splitext(file.filename)[1].lower()
@@ -390,7 +602,7 @@ async def upload_and_screen_document(
         with open(probe_path, "wb") as pbuffer:
             shutil.copyfileobj(probe_face.file, pbuffer)
 
-    # Run genuine end-to-end pipeline (mock_profile=None ensures real OCR)
+    # Run genuine end-to-end pipeline with authoritative validation gatekeeper
     pipeline_out = _execute_screening_pipeline(
         doc_file_path=str(dest_path),
         doc_type_hint=document_type,
@@ -403,19 +615,34 @@ async def upload_and_screen_document(
     new_case_id = f"VNX-2026-{case_num}"
     now = datetime.utcnow()
 
-    initial_status = "VERIFIED" if risk_res["overall_risk_level"] == "LOW" else "IN_REVIEW"
-    if risk_res["overall_risk_level"] == "HIGH":
-        initial_status = "FLAGGED"
+    # Authoritative Server-Side Gatekeeper:
+    # If the document classification resulted in a mismatch or unknown/invalid input,
+    # the pipeline was halted. Mark as REJECTED with HIGH risk to prevent Low Risk outcome.
+    is_mismatch = pipeline_out.get("is_mismatched", False)
+    if is_mismatch:
+        initial_status = "REJECTED"
+        overall_risk = "HIGH"
+        risk_score = 92
+        ai_conf = pipeline_out.get("classification_result", {}).get("classification_confidence", 85.0)
+    else:
+        initial_status = "VERIFIED" if risk_res["overall_risk_level"] == "LOW" else "IN_REVIEW"
+        if risk_res["overall_risk_level"] == "HIGH":
+            initial_status = "FLAGGED"
+        overall_risk = risk_res["overall_risk_level"]
+        risk_score = risk_res["risk_score"]
+        ai_conf = risk_res["ai_confidence"]
 
     new_case = ScreeningCase(
         id=new_case_id,
         document_type=pipeline_out["document_type"],
+        selected_document_type=document_type,
+        classification_result_json=json.dumps(pipeline_out.get("classification_result", {})),
         file_name=file.filename,
         file_url=file_url,
         status=initial_status,
-        overall_risk_level=risk_res["overall_risk_level"],
-        risk_score=risk_res["risk_score"],
-        ai_confidence=risk_res["ai_confidence"],
+        overall_risk_level=overall_risk,
+        risk_score=risk_score,
+        ai_confidence=ai_conf,
         document_quality_score=pipeline_out["quality_metrics"]["overall_quality_score"],
         ocr_confidence=pipeline_out["ocr_result"]["ocr_confidence"],
         extracted_data_json=json.dumps(pipeline_out["ocr_result"]["extracted_data"]),
@@ -436,19 +663,20 @@ async def upload_and_screen_document(
     db.commit()
     db.refresh(new_case)
 
-    severity = "CRITICAL" if risk_res["overall_risk_level"] == "HIGH" else ("WARNING" if risk_res["overall_risk_level"] == "MEDIUM" else "INFO")
+    severity = "CRITICAL" if overall_risk == "HIGH" or is_mismatch else ("WARNING" if overall_risk == "MEDIUM" else "INFO")
+    action = "DOCUMENT_TYPE_MISMATCH_REJECTED" if is_mismatch else "DOCUMENT_UPLOAD"
     log_audit_event(
         db=db,
         username=current_user.full_name,
-        action="DOCUMENT_UPLOAD",
+        action=action,
         case_id=new_case_id,
-        details=f"Uploaded and screened '{file.filename}'. Risk Level: {risk_res['overall_risk_level']} (Score: {risk_res['risk_score']}/100).",
+        details=f"Uploaded '{file.filename}'. Selected: {document_type}, Detected: {pipeline_out['document_type']} (Status: {pipeline_out.get('classification_result', {}).get('validation_status')}). Risk Level: {overall_risk} (Score: {risk_score}/100). Status: {initial_status}.",
         severity=severity
     )
 
     return _format_case_out(new_case)
 
-# --- Sub-endpoints (Phase 15 modular APIs) ---
+# --- Sub-endpoints (Modular APIs) ---
 
 @router.post("/{case_id}/mrz")
 def analyze_case_mrz(case_id: str, db: Session = Depends(get_db)):
@@ -489,6 +717,7 @@ def _format_case_out(c: ScreeningCase) -> dict:
     return {
         "id": c.id,
         "document_type": c.document_type,
+        "selected_document_type": getattr(c, "selected_document_type", None) or c.document_type,
         "file_name": c.file_name,
         "file_url": c.file_url,
         "status": c.status,
@@ -504,6 +733,7 @@ def _format_case_out(c: ScreeningCase) -> dict:
         "mrz_result": c.get_mrz_result(),
         "consistency_result": {},
         "validation_result": c.get_validation_result(),
+        "classification_result": c.get_classification_result() if hasattr(c, "get_classification_result") else {},
         "tampering_result": c.get_tampering_result(),
         "face_result": c.get_face_result(),
         "liveness_result": {},

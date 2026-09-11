@@ -34,6 +34,9 @@ class ScreeningCase(Base):
     document_quality_score = Column(Float, default=92.0)   # 0 - 100%
     ocr_confidence = Column(Float, default=96.0)           # 0 - 100%
 
+    selected_document_type = Column(String(50), nullable=True) # Selected document type from ingest/upload
+    classification_result_json = Column(Text, default="{}")
+
     # Serialized JSON structures
     extracted_data_json = Column(Text, default="{}")
     consistency_checks_json = Column(Text, default="[]")
@@ -102,6 +105,12 @@ class ScreeningCase(Base):
     def get_validation_result(self):
         try:
             return json.loads(self.validation_result_json) if self.validation_result_json else {}
+        except Exception:
+            return {}
+
+    def get_classification_result(self):
+        try:
+            return json.loads(self.classification_result_json) if self.classification_result_json else {}
         except Exception:
             return {}
 

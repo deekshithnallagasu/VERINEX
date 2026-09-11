@@ -322,7 +322,8 @@ def seed_database(db: Session):
             SystemSetting(key="auto_escalate_high_risk", value="true", description="Automatically queue High Risk cases for human review", category="Workflow"),
             SystemSetting(key="session_timeout_minutes", value="30", description="Inactivity timeout for compliance sessions", category="Security"),
             SystemSetting(key="data_retention_days", value="90", description="Days before PII is automatically redacted", category="Privacy"),
-            SystemSetting(key="ocr_engine_mode", value="Hybrid (Heuristic + LayoutLM)", description="Active document parser mode", category="AI Configuration")
+            SystemSetting(key="ocr_engine_mode", value="Hybrid (Heuristic + LayoutLM)", description="Active document parser mode", category="AI Configuration"),
+            SystemSetting(key="doc_type_confidence_threshold", value="75", description="Minimum confidence threshold (%) for automatic document type confirmation", category="Authentication Thresholds")
         ]
         db.add_all(settings)
         db.commit()

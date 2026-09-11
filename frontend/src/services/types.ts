@@ -12,7 +12,45 @@ export interface User {
 
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH';
 export type CaseStatus = 'PENDING' | 'IN_REVIEW' | 'VERIFIED' | 'FLAGGED' | 'REJECTED';
-export type DocumentType = 'PASSPORT' | 'DRIVERS_LICENSE' | 'NATIONAL_ID' | 'RESIDENCE_PERMIT';
+export type DocumentType = 
+  | 'PASSPORT' 
+  | 'AADHAAR' 
+  | 'PAN_CARD' 
+  | 'DRIVERS_LICENSE' 
+  | 'VOTER_ID' 
+  | 'NATIONAL_ID' 
+  | 'RESIDENCE_PERMIT' 
+  | 'UNKNOWN';
+
+export type DocumentValidationStatus = 
+  | 'IDLE' 
+  | 'DETECTING' 
+  | 'DOCUMENT_TYPE_CONFIRMED' 
+  | 'DOCUMENT_TYPE_MISMATCH' 
+  | 'UNKNOWN_DOCUMENT' 
+  | 'MANUAL_REVIEW_REQUIRED';
+
+export interface DocumentValidationResult {
+  selected_document_type: string;
+  detected_document_type: string;
+  detected_document_name: string;
+  classification_confidence: number;
+  confidence_threshold: number;
+  validation_status: DocumentValidationStatus;
+  is_match: boolean;
+  extracted_signals: {
+    visual_type?: string;
+    aspect_ratio?: number;
+    lines_count?: number;
+    has_passport_mrz?: boolean;
+    matched_keywords?: Record<string, string[]>;
+    matched_regex?: Record<string, string[]>;
+  };
+  expected_document_features: string[];
+  mismatch_reason?: string | null;
+  warning_message?: string | null;
+  scores_breakdown?: Record<string, number>;
+}
 
 export interface ExtractedData {
   full_name?: string;
@@ -62,6 +100,7 @@ export interface CaseNote {
 export interface ScreeningCase {
   id: string;
   document_type: DocumentType;
+  selected_document_type?: string;
   file_name: string;
   file_url: string;
   status: CaseStatus;
@@ -78,6 +117,7 @@ export interface ScreeningCase {
   tampering_result?: any;
   face_result?: any;
   validation_result?: any;
+  classification_result?: DocumentValidationResult | any;
   annotated_file_url?: string | null;
   face_file_url?: string | null;
   recommendation?: string | null;

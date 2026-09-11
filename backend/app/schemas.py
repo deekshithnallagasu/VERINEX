@@ -92,9 +92,24 @@ class UpdateCaseStatusRequest(BaseModel):
     status: str  # VERIFIED, FLAGGED, REJECTED, IN_REVIEW
     decision_reason: Optional[str] = None
 
+class DocumentValidationResponse(BaseModel):
+    selected_document_type: str
+    detected_document_type: str
+    detected_document_name: str
+    classification_confidence: float
+    confidence_threshold: float
+    validation_status: str  # DOCUMENT_TYPE_CONFIRMED, DOCUMENT_TYPE_MISMATCH, UNKNOWN_DOCUMENT, MANUAL_REVIEW_REQUIRED
+    is_match: bool
+    extracted_signals: Dict[str, Any]
+    expected_document_features: List[str]
+    mismatch_reason: Optional[str] = None
+    warning_message: Optional[str] = None
+    scores_breakdown: Optional[Dict[str, float]] = None
+
 class ScreeningCaseOut(BaseModel):
     id: str
     document_type: str
+    selected_document_type: Optional[str] = None
     file_name: str
     file_url: str
     status: str
@@ -110,6 +125,7 @@ class ScreeningCaseOut(BaseModel):
     mrz_result: Optional[Dict[str, Any]] = None
     consistency_result: Optional[Dict[str, Any]] = None
     validation_result: Optional[Dict[str, Any]] = None
+    classification_result: Optional[Dict[str, Any]] = None
     tampering_result: Optional[Dict[str, Any]] = None
     face_result: Optional[Dict[str, Any]] = None
     liveness_result: Optional[Dict[str, Any]] = None

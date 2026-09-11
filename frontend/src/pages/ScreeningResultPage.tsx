@@ -190,6 +190,42 @@ export const ScreeningResultPage: React.FC<ScreeningResultPageProps> = ({
         </div>
       </div>
 
+      {/* DOCUMENT TYPE AUTHENTICATION STATUS BANNER */}
+      {caseData.classification_result && (
+        <div className={`p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs ${
+          caseData.classification_result.validation_status === 'DOCUMENT_TYPE_CONFIRMED'
+            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+            : caseData.classification_result.validation_status === 'DOCUMENT_TYPE_MISMATCH' || caseData.classification_result.validation_status === 'UNKNOWN_DOCUMENT'
+            ? 'bg-rose-500/15 border-rose-500/30 text-rose-300'
+            : 'bg-amber-500/15 border-amber-500/30 text-amber-300'
+        }`}>
+          <div className="flex items-center gap-3">
+            <ShieldCheck className="w-5 h-5 flex-shrink-0 text-blue-400" />
+            <div>
+              <span className="font-bold text-white">Document Type Authentication: </span>
+              <span>
+                Selected: <strong className="text-white">{caseData.selected_document_type || caseData.document_type}</strong> | Detected: <strong className="text-white">{caseData.classification_result.detected_document_name || caseData.document_type}</strong>
+              </span>
+              {caseData.classification_result.warning_message && (
+                <p className="text-[11px] mt-0.5 text-rose-200">{caseData.classification_result.warning_message}</p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 font-mono">
+            <span className="px-2 py-0.5 rounded bg-navy-900 border border-slate-700 text-[11px]">
+              Confidence: {caseData.classification_result.classification_confidence}%
+            </span>
+            <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
+              caseData.classification_result.validation_status === 'DOCUMENT_TYPE_CONFIRMED'
+                ? 'bg-emerald-500/20 text-emerald-300'
+                : 'bg-rose-500/20 text-rose-300'
+            }`}>
+              {caseData.classification_result.validation_status}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* PHASE 18: SIDE-BY-SIDE FORENSIC INSPECTOR COMPONENT */}
       <div className="p-6 rounded-2xl bg-navy-800/80 border border-slate-700/60 backdrop-blur-md space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

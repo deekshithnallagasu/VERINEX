@@ -4,7 +4,8 @@ import {
   SampleDocumentItem,
   AuditLog,
   DashboardStats,
-  CaseStatus
+  CaseStatus,
+  DocumentValidationResult
 } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
@@ -133,6 +134,32 @@ export const api = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: 'Upload screening failed' }));
       throw new Error(err.detail || 'Document upload failed');
+    }
+    return res.json();
+  },
+
+  async validateDocumentType(
+    file?: File | Blob | null,
+    selectedType: string = 'PASSPORT',
+    sampleId?: string | null
+  ): Promise<DocumentValidationResult> {
+    const formData = new FormData();
+    formData.append('selected_document_type', selectedType);
+    if (file) {
+      formData.append('file', file);
+    }
+    if (sampleId) {
+      formData.append('sample_id', sampleId);
+    }
+
+    const res = await fetch(`${API_BASE}/screenings/validate-document-type`, {
+      method: 'POST',
+      headers: { ...getAuthHeader() },
+      body: formData
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Document validation failed' }));
+      throw new Error(err.detail || 'Document validation check failed');
     }
     return res.json();
   },

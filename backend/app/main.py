@@ -25,7 +25,9 @@ async def lifespan(app: FastAPI):
             "face_result_json TEXT DEFAULT '{}'",
             "validation_result_json TEXT DEFAULT '{}'",
             "annotated_file_url VARCHAR(255)",
-            "face_file_url VARCHAR(255)"
+            "face_file_url VARCHAR(255)",
+            "selected_document_type VARCHAR(50)",
+            "classification_result_json TEXT DEFAULT '{}'"
         ]:
             try:
                 conn.execute(text(f"ALTER TABLE screening_cases ADD COLUMN {col_def}"))

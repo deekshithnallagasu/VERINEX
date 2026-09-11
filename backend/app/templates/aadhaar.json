@@ -1,0 +1,37 @@
+{
+  "document_type": "AADHAAR",
+  "name": "Aadhaar Card (UIDAI / Govt. of India)",
+  "aspect_ratio": 1.58,
+  "mrz_required": false,
+  "mrz_format": null,
+  "mrz_lines": 0,
+  "mrz_line_length": 0,
+  "required_fields": [
+    "document_number",
+    "full_name",
+    "date_of_birth",
+    "gender"
+  ],
+  "optional_fields": [
+    "address",
+    "issue_date",
+    "enrolment_number"
+  ],
+  "keywords": [
+    "AADHAAR",
+    "UIDAI",
+    "GOVERNMENT OF INDIA",
+    "GOVT OF INDIA",
+    "BHARAT SARKAR",
+    "UNIQUE IDENTIFICATION AUTHORITY OF INDIA",
+    "UNIQUE IDENTIFICATION",
+    "MERA AADHAAR",
+    "MERI PEHCHAN",
+    "AUTHORITY OF INDIA",
+    "HELP@UIDAI.GOV.IN",
+    "WWW.UIDAI.GOV.IN",
+    "ENROLMENT",
+    "VID"
+  ],
+  "number_regex": "\\b\\d{4}\\s?\\d{4}\\s?\\d{4}\\b"
+}

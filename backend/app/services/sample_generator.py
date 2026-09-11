@@ -193,9 +193,163 @@ def generate_sample_documents():
         blurred = img.filter(ImageFilter.GaussianBlur(radius=3.8))
         blurred.save(p4)
 
+    # 5. Fictional Aadhaar Card (Valid ID-1)
+    p5 = SAMPLES_DIR / "sample_aadhaar.png"
+    if not p5.exists():
+        w, h = 860, 540
+        img = Image.new("RGB", (w, h), color=(253, 253, 255))
+        draw = ImageDraw.Draw(img)
+        draw_grid_pattern(draw, w, h, (235, 240, 245))
+
+        # Top banner with Govt of India & UIDAI branding
+        draw.rectangle([(0, 0), (w, 65)], fill=(234, 88, 12))  # Saffron header accent
+        draw.text((30, 15), "GOVERNMENT OF INDIA", fill=(255, 255, 255))
+        draw.text((30, 38), "UNIQUE IDENTIFICATION AUTHORITY OF INDIA", fill=(255, 240, 230))
+        draw_specimen_watermark(draw, w, h)
+
+        # Portrait zone
+        draw.rectangle([(40, 95), (220, 330)], fill=(225, 235, 245), outline=(120, 140, 160), width=2)
+        draw.ellipse([(85, 125), (175, 215)], fill=(140, 160, 185))
+        draw.ellipse([(55, 225), (205, 330)], fill=(120, 140, 170))
+        draw.text((50, 305), "HOLDER PHOTO", fill=(80, 100, 125))
+
+        # Fields
+        draw.text((250, 105), "To:", fill=(100, 115, 135))
+        draw.text((250, 130), "RAJESH KUMAR SHARMA", fill=(15, 23, 42))
+        draw.text((250, 170), "DOB: 12/08/1985", fill=(15, 23, 42))
+        draw.text((250, 205), "Gender / Ling: Male / Purush", fill=(15, 23, 42))
+
+        # 12-Digit UID Number
+        draw.rectangle([(250, 260), (750, 320)], fill=(245, 248, 255), outline=(200, 215, 235))
+        draw.text((320, 278), "1234  5678  9012", fill=(194, 65, 12))
+
+        # Bottom slogan
+        draw.rectangle([(0, 480), (w, h)], fill=(22, 101, 52))
+        draw.text((280, 500), "Mera Aadhaar, Meri Pehchan", fill=(255, 255, 255))
+
+        img.save(p5)
+
+    # 6. Fictional PAN Card (Valid ID-1)
+    p6 = SAMPLES_DIR / "sample_pan_card.png"
+    if not p6.exists():
+        w, h = 860, 540
+        img = Image.new("RGB", (w, h), color=(240, 248, 255))
+        draw = ImageDraw.Draw(img)
+        draw_grid_pattern(draw, w, h, (215, 230, 245))
+
+        # Income Tax Dept header
+        draw.rectangle([(0, 0), (w, 75)], fill=(30, 58, 138))
+        draw.text((30, 15), "INCOME TAX DEPARTMENT", fill=(255, 255, 255))
+        draw.text((30, 42), "GOVT. OF INDIA  /  PERMANENT ACCOUNT NUMBER CARD", fill=(200, 225, 255))
+        draw_specimen_watermark(draw, w, h)
+
+        # Portrait zone
+        draw.rectangle([(40, 100), (220, 330)], fill=(220, 230, 245), outline=(100, 120, 150), width=2)
+        draw.ellipse([(85, 130), (175, 220)], fill=(130, 150, 175))
+        draw.ellipse([(55, 230), (205, 330)], fill=(110, 130, 160))
+
+        # PAN fields
+        draw.text((250, 100), "Permanent Account Number:", fill=(100, 116, 139))
+        draw.text((250, 125), "ABCDE1234F", fill=(15, 23, 42))
+
+        draw.text((250, 170), "Name:", fill=(100, 116, 139))
+        draw.text((250, 195), "VIKRAM RAO", fill=(15, 23, 42))
+
+        draw.text((250, 235), "Father's Name:", fill=(100, 116, 139))
+        draw.text((250, 260), "SURESH RAO", fill=(15, 23, 42))
+
+        draw.text((250, 300), "Date of Birth:", fill=(100, 116, 139))
+        draw.text((250, 325), "24/11/1990", fill=(15, 23, 42))
+
+        # Signature box
+        draw.rectangle([(40, 370), (220, 440)], fill=(255, 255, 255), outline=(150, 160, 180))
+        draw.line([(60, 410), (90, 390), (130, 420), (160, 395), (200, 415)], fill=(10, 20, 40), width=2)
+        draw.text((80, 425), "Signature", fill=(140, 150, 170))
+
+        img.save(p6)
+
+    # 7. Fictional Voter ID Card (Valid ID-1)
+    p7 = SAMPLES_DIR / "sample_voter_id.png"
+    if not p7.exists():
+        w, h = 860, 540
+        img = Image.new("RGB", (w, h), color=(252, 250, 245))
+        draw = ImageDraw.Draw(img)
+        draw_grid_pattern(draw, w, h, (235, 230, 220))
+
+        # Header
+        draw.rectangle([(0, 0), (w, 75)], fill=(67, 56, 202))
+        draw.text((30, 15), "ELECTION COMMISSION OF INDIA", fill=(255, 255, 255))
+        draw.text((30, 42), "ELECTOR PHOTO IDENTITY CARD", fill=(225, 220, 255))
+        draw_specimen_watermark(draw, w, h)
+
+        # Portrait
+        draw.rectangle([(40, 100), (220, 330)], fill=(235, 230, 225), outline=(130, 120, 110), width=2)
+        draw.ellipse([(85, 130), (175, 220)], fill=(150, 140, 135))
+        draw.ellipse([(55, 230), (205, 330)], fill=(130, 120, 115))
+
+        # Fields
+        draw.text((250, 100), "EPIC NO:", fill=(100, 116, 139))
+        draw.text((350, 100), "WBM1948201", fill=(15, 23, 42))
+
+        draw.text((250, 150), "Elector's Name:", fill=(100, 116, 139))
+        draw.text((250, 175), "ANANYA DESHMUKH", fill=(15, 23, 42))
+
+        draw.text((250, 215), "Father's Name:", fill=(100, 116, 139))
+        draw.text((250, 240), "RAMESH DESHMUKH", fill=(15, 23, 42))
+
+        draw.text((250, 280), "Sex: Female", fill=(15, 23, 42))
+        draw.text((450, 280), "DOB: 15/07/1992", fill=(15, 23, 42))
+
+        draw.text((250, 330), "Assembly Constituency: 142 - CENTRAL", fill=(71, 85, 105))
+
+        img.save(p7)
+
+    # 8. Signature Image Only (Non-Document / Rejected Input)
+    p8 = SAMPLES_DIR / "sample_signature.png"
+    if not p8.exists():
+        w, h = 550, 220
+        img = Image.new("RGB", (w, h), color=(255, 255, 255))
+        draw = ImageDraw.Draw(img)
+        # Draw cursive ink strokes simulating a standalone signature
+        points = [
+            (40, 120), (70, 80), (95, 140), (120, 70), (150, 130),
+            (180, 100), (210, 125), (240, 90), (280, 140), (320, 85),
+            (360, 130), (410, 105), (460, 125), (490, 95)
+        ]
+        draw.line(points, fill=(15, 23, 42), width=4)
+        # Add underline flourish
+        draw.line([(60, 155), (470, 145)], fill=(15, 23, 42), width=3)
+        img.save(p8)
+
+    # 9. Blank Uniform Image (Invalid Input)
+    p9 = SAMPLES_DIR / "sample_blank.png"
+    if not p9.exists():
+        w, h = 800, 600
+        img = Image.new("RGB", (w, h), color=(252, 252, 252))
+        img.save(p9)
+
+    # 10. Random Scenic Photo without Identity Document Structure
+    p10 = SAMPLES_DIR / "sample_random_photo.png"
+    if not p10.exists():
+        w, h = 800, 600
+        img = Image.new("RGB", (w, h), color=(135, 206, 235))  # Sky blue
+        draw = ImageDraw.Draw(img)
+        # Sun
+        draw.ellipse([(600, 50), (720, 170)], fill=(255, 223, 0))
+        # Hills
+        draw.polygon([(0, 600), (250, 300), (500, 600)], fill=(34, 139, 34))
+        draw.polygon([(300, 600), (550, 250), (800, 600)], fill=(46, 139, 87))
+        img.save(p10)
+
     return {
         "CLEAN_PASSPORT": str(p1),
         "EXPIRED_LICENSE": str(p2),
         "TAMPERED_MRZ_ID": str(p3),
         "BLURRY_CARD": str(p4),
+        "VALID_AADHAAR": str(p5),
+        "VALID_PAN": str(p6),
+        "VALID_VOTER_ID": str(p7),
+        "SAMPLE_SIGNATURE": str(p8),
+        "SAMPLE_BLANK": str(p9),
+        "SAMPLE_RANDOM_PHOTO": str(p10),
     }

@@ -1,0 +1,35 @@
+{
+  "document_type": "VOTER_ID",
+  "name": "Elector Photo Identity Card / Voter ID (Election Commission of India)",
+  "aspect_ratio": 1.58,
+  "mrz_required": false,
+  "mrz_format": null,
+  "mrz_lines": 0,
+  "mrz_line_length": 0,
+  "required_fields": [
+    "document_number",
+    "full_name"
+  ],
+  "optional_fields": [
+    "father_name",
+    "gender",
+    "date_of_birth",
+    "age",
+    "address",
+    "assembly_constituency"
+  ],
+  "keywords": [
+    "ELECTION COMMISSION OF INDIA",
+    "ELECTOR PHOTO IDENTITY CARD",
+    "ELECTOR",
+    "EPIC NO",
+    "EPIC",
+    "BHARAT NIRVACHAN AYOG",
+    "NIRVACHAN",
+    "ASSEMBLY CONSTITUENCY",
+    "PARLIAMENTARY CONSTITUENCY",
+    "ELECTORAL REGISTRATION",
+    "IDENTITY CARD"
+  ],
+  "number_regex": "\\b[A-Z]{3}[0-9]{7}\\b"
+}

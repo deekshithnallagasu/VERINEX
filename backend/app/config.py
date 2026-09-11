@@ -32,5 +32,6 @@ class Settings:
     RISK_LOW_MAX: int = 29
     RISK_MED_MAX: int = 69
     AUTO_FLAG_THRESHOLD: int = 70
+    DOCUMENT_TYPE_CONFIDENCE_THRESHOLD: float = float(os.getenv("DOC_TYPE_CONFIDENCE_THRESHOLD", 75.0))
 
 settings = Settings()

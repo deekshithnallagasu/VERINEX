@@ -1,6 +1,7 @@
 {
-  "document_type": "DRIVER_LICENSE",
-  "name": "Driver License / Permis de Conduire (ID-1 Format)",
+  "document_type": "DRIVERS_LICENSE",
+  "name": "Driver License / Driving Licence (ID-1 Format)",
+  "aliases": ["DRIVERS_LICENSE", "DRIVER_LICENSE"],
   "aspect_ratio": 1.58,
   "mrz_required": false,
   "mrz_format": null,
@@ -19,5 +20,17 @@
     "gender",
     "issuing_authority"
   ],
-  "keywords": ["DRIVER LICENSE", "DRIVING LICENCE", "PERMIS DE CONDUIRE", "MOTOR VEHICLES", "CONDUCE", "DL NO"]
+  "keywords": [
+    "DRIVER LICENSE",
+    "DRIVING LICENCE",
+    "DRIVERS LICENSE",
+    "PERMIS DE CONDUIRE",
+    "MOTOR VEHICLES",
+    "CONDUCE",
+    "DL NO",
+    "LICENCE TO DRIVE",
+    "UNION OF INDIA",
+    "TRANSPORT DEPARTMENT",
+    "AUTHORISATION TO DRIVE"
+  ]
 }
